@@ -8,6 +8,7 @@
 
 #import "dispatch_source_t_VC.h"
 
+
 @interface dispatch_source_t_VC ()
 
 @end
@@ -46,7 +47,6 @@ dispatch_source_t CreateDispatchTimer(uint64_t interval,
     }
     return Timer;
 }
-
 
 + (void) MyCreateTimerInterval:(float) timeInterval Block:(dispatch_block_t)block
 {
@@ -104,7 +104,6 @@ dispatch_source_t CreateDispatchTimer(uint64_t interval,
         }
     }
     
-    
     dispatch_async(dispatch_get_main_queue(), ^{
         NSLog(@"***********timeoutCount:%ld*********",timeoutCount);
         NSLog(@"***********timeoutCount * timeInterval:%f*********",timeoutCount * timeInterval);
@@ -115,41 +114,41 @@ dispatch_source_t CreateDispatchTimer(uint64_t interval,
 
 /* 耗时方法 */
 - (void)TimeConsumingTasks{
+    
     for (int i = 0; i < 1000 ; i++) {
-        NSLog(@"***********%@*********",@"执行任务中");
+        NSLog(@"***********%@ %d*********",@"执行任务中",i);
         if (timeoutCount * timeInterval >= timeoutLength) {
-            isFinish = YES;
-            return ;
+            break;
         }
     }
     
-    isFinish = YES;
-    return;
+    /* 此处唤醒 run loop */
+    if(isFinish == 0)
+    {
+        [[dispatch_source_t_VC shareSource] stopTimer];
+        [self performSelectorOnMainThread:@selector(endRunLoop) withObject:nil waitUntilDone:NO];
+    }
+    
 }
 
 /* 检查超时的方法 */
 - (void)checkTimeOut{
-    
+    timeoutCount ++;
     if (timeoutCount * timeInterval >= timeoutLength) {
         NSLog(@"***********%@*********",@"你大爷的已经超时了");
         [[dispatch_source_t_VC shareSource] stopTimer];
-        [[dispatch_source_t_VC shareSource] endRunLoop];
         return;
     }
-    
-    timeoutCount += 1;
-    
 }
 
-
 /* 注销 Timer */
+
 - (void)stopTimer{
     NSCondition* Condition = [[NSCondition alloc] init];
     [Condition lock];
     {
         if (Timer) {
             dispatch_source_set_cancel_handler(Timer, ^{
-                
             });
             dispatch_source_cancel(Timer);
             Timer = NULL;
@@ -167,7 +166,6 @@ dispatch_source_t CreateDispatchTimer(uint64_t interval,
 
 /* 结束roonloop 的跑圈 */
 - (void)endRunLoop{
-    
     isFinish = YES;
 }
 
