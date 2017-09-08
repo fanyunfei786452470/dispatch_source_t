@@ -1,6 +1,6 @@
 //
 //  dispatch_source_t_VC.m
-//  dispatch_source_t(实例)
+//  OC(GCD)
 //
 //  Created by 范云飞 on 2017/8/30.
 //  Copyright © 2017年 范云飞. All rights reserved.
@@ -15,7 +15,7 @@
 
 static dispatch_source_t_VC * source_t_VC = nil;
 NSInteger timeoutCount = 0;/* 用于超时计数 */
-NSInteger timeoutLength = 20;/* 设定20为超时的长度 */
+NSInteger timeoutLength = 2;/* 设定20为超时的长度 */
 float timeInterval = 0.1;/* 时间间隔 */
 BOOL isFinish = NO;/* 结束任务完成的标志 */
 
@@ -90,8 +90,10 @@ dispatch_source_t CreateDispatchTimer(uint64_t interval,
 - (void)createTimer_DispatchSource{
     dispatch_async(dispatch_queue_create("time_out_control", DISPATCH_QUEUE_SERIAL), ^{
         [dispatch_source_t_VC MyCreateTimerInterval: timeInterval Block:^{
+            /* 每隔0.1秒 检测一次耗时操作是否超时 */
             [self checkTimeOut];
         }];
+        /* 耗时操作 */
         [self TimeConsumingTasks];
     });
     
@@ -108,6 +110,7 @@ dispatch_source_t CreateDispatchTimer(uint64_t interval,
         NSLog(@"***********timeoutCount:%ld*********",timeoutCount);
         NSLog(@"***********timeoutCount * timeInterval:%f*********",timeoutCount * timeInterval);
         NSLog(@"***********%@*********",@"到此为止");
+        timeoutCount = 0;
     });
     
 }
@@ -115,14 +118,17 @@ dispatch_source_t CreateDispatchTimer(uint64_t interval,
 /* 耗时方法 */
 - (void)TimeConsumingTasks{
     
-    for (int i = 0; i < 1000 ; i++) {
+    for (int i = 0; i < 10 ; i++) {
         NSLog(@"***********%@ %d*********",@"执行任务中",i);
+        /* 此处判断是否超时，超时直接终止耗时操作 */
         if (timeoutCount * timeInterval >= timeoutLength) {
+            [[dispatch_source_t_VC shareSource] stopTimer];
+            [self performSelectorOnMainThread:@selector(endRunLoop) withObject:nil waitUntilDone:NO];
             break;
         }
     }
     
-    /* 此处唤醒 run loop */
+    /* 此处唤醒 run loop（没有超时） */
     if(isFinish == 0)
     {
         [[dispatch_source_t_VC shareSource] stopTimer];
@@ -136,7 +142,7 @@ dispatch_source_t CreateDispatchTimer(uint64_t interval,
     timeoutCount ++;
     if (timeoutCount * timeInterval >= timeoutLength) {
         NSLog(@"***********%@*********",@"你大爷的已经超时了");
-        [[dispatch_source_t_VC shareSource] stopTimer];
+        //        [[dispatch_source_t_VC shareSource] stopTimer];
         return;
     }
 }
@@ -161,7 +167,6 @@ dispatch_source_t CreateDispatchTimer(uint64_t interval,
         }
     }
     [Condition unlock];
-    [[dispatch_source_t_VC shareSource] endRunLoop];
 }
 
 /* 结束roonloop 的跑圈 */
@@ -170,3 +175,6 @@ dispatch_source_t CreateDispatchTimer(uint64_t interval,
 }
 
 @end
+
+
+
